@@ -1,17 +1,8 @@
 {
-    "projects": [
-      {
-        "id": 34928779,
-        "sortby": "due"
-      },
-      {
-        "id": 562175130,
-        "sortby": "name"
-      },
-      {
-        "id": 1785107741,
-        "sortby": "priority"
-      }
-    ],
-    "ordered": "0"
-  }
+  "apikey": "<your API key>",
+  "projects": 
+    {
+      "<Project Name 1>" : ["due","priority"],
+      "<Project Name 2>" : ["due","priority"],
+    }
+}

@@ -77,8 +77,8 @@ def sortTasks(tasks,sortBy):
                                         if tasks[i]['due'] is None and tasks[i+1]['due'] is not None:
                                                 #This task has no date, but the next one does. Swap.
                                                 exchanges = True
-                                                print("Swapping:"+ tasks[i]['content'])
-                                                print("For:"+ tasks[i+1]['content'])
+                                                #print("Swapping:"+ tasks[i]['content'])
+                                                #print("For:"+ tasks[i+1]['content'])
                                                 temp = tasks[i]
                                                 tasks[i] = tasks[i+1]
                                                 tasks[i+1] = temp
@@ -91,8 +91,8 @@ def sortTasks(tasks,sortBy):
                                         elif tasks[i]['due']['date'] > tasks[i+1]['due']['date']:
                                                 #both this task has a data and so does the next
                                                 exchanges = True
-                                                print("Swapping:"+ tasks[i]['content'])
-                                                print("For:"+ tasks[i+1]['content'])
+                                                #print("Swapping:"+ tasks[i]['content'])
+                                                #print("For:"+ tasks[i+1]['content'])
                                                 temp = tasks[i]
                                                 tasks[i] = tasks[i+1]
                                                 tasks[i+1] = temp
@@ -120,26 +120,39 @@ def sortTasks(tasks,sortBy):
         else:
                 raise Exception("Sort option not understood")
 
-def lambda_handler(event, context):
-        #Begin
-        print(">>>BEGIN<<<")
 
-        p = os.environ['todoistkey']
-        api = TodoistAPI(p)
-        api.sync()
+def main():
+    print("Loading config...")
+    with open('/home/pi/todoist-ordering/config.json', 'r') as f:
+        config = json.load(f)
+    api = TodoistAPI(config['apikey'])
+    api.sync()
+    projects_to_sort = config['projects']
+    print("Sorting projects")
+    for project in api.state['projects']:
+        name = project['name']
+        if name in projects_to_sort.keys():
+            sortkeys = projects_to_sort[name]
+            result = getTasksInProject(project['id'],api.state['items'])
+        #     for item in result:
+        #         print("Item Content: (" + item['content'] + ")")
+            for sortkey in sortkeys:
+                sortedResult = sortTasks(result,sortkey)
+                print("Sorting project: '" + project['name'] + "' by key: '" + sortkey + "'")
+            thisOrder=0
+            for item in sortedResult:
+                api.items.reorder([{'id': item['id'], 'child_order': thisOrder}])
+                thisOrder +=1
+        #     print("After sort...")
+        #     for item in result:
+        #         print("Item Content: (" + item['content'] + ")")
+            print("Committing...")
+        else:
+            print("No config for project: '" + project['name'] + "'")
         
-        for project in event['projects']:
-                print(">ID:"+str(project['id']))
-                print(">Sortby:"+project['sortby'])
-                result = getTasksInProject(project['id'],api.state['items'])
-                print("===Item count===")
-                print(len(result))
-                print("==sort items==")
-                sortedResult = sortTasks(result,project['sortby'])
-                thisOrder=0
-                for item in sortedResult:
-                        api.items.reorder([{'id': item['id'], 'child_order': thisOrder}])
-                        thisOrder +=1
-                api.commit()
-        print(">>>END<<<")
-        return {"ordered":1}
+    api.commit()
+    print("DONE!")
+
+
+if __name__ == "__main__":
+    main()
